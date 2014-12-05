@@ -32,10 +32,11 @@ func init() {
 	// flag.StringVar(&cfg, "cfg", "", "json configuration")
 	flag.BoolVar(&https, "https", false, "run as https (cert.pem and key.pem required)")
 	// openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days XXX -nodes
-	flag.Parse()
 }
 
 func main() {
+	flag.Parse()
+
 	fmt.Printf("Serving directory %s on port %d at path %s\n", directory, portNum, path)
 	fmt.Printf("http://localhost:%d%s\n", portNum, path)
 
