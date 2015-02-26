@@ -11,6 +11,9 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync"
+	"time"
+
+	"github.com/bradfitz/http2"
 )
 
 type Config struct {
@@ -28,9 +31,15 @@ type Handler struct {
 	Backend     string `json:"backend,omitempty"`
 }
 
+func timeTrack(start time.Time, r *http.Request) {
+	elapsed := time.Since(start)
+	ms := float64(elapsed) / float64(time.Millisecond)
+	fmt.Printf("%s %s %s %s %v\n", r.RemoteAddr, r.Method, r.URL, r.Proto, ms)
+}
+
 func WebLog(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		defer timeTrack(time.Now(), r)
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -94,7 +103,11 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", config.HttpsPort), "cert.pem", "key.pem", nil))
+		var srv http.Server
+		srv.Addr = fmt.Sprintf(":%d", config.HttpsPort)
+		http2.ConfigureServer(&srv, &http2.Server{})
+		log.Fatal(srv.ListenAndServeTLS("cert.pem", "key.pem"))
+		//log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", config.HttpsPort), "cert.pem", "key.pem", nil))
 	}()
 
 	wg.Wait()
